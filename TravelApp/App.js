@@ -1,12 +1,18 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { Text, View } from 'react-native';
 
+import HomeScreen from './screens/HomeScreen';
+import DetailsScreen from './screens/DetailsScreen';
+
+const Stack = createNativeStackNavigator();
+
 export default function App() {
   return (
     <NavigationContainer>
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Navigation Ready!</Text>
-      </View>
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Details" component={DetailsScreen} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
