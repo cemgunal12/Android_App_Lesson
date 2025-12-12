@@ -1,12 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
-import { useFonts } from 'expo-font';
+import { useFonts, Montserrat_400Regular, Montserrat_700Bold } from '@expo-google-fonts/montserrat';
 import ProfileScreen from './screens/ProfileScreen';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    'Montserrat': require('./assets/fonts/Montserrat-Regular.ttf'),
-    'MontserratBold': require('./assets/fonts/Montserrat-Bold.ttf'),
+    Montserrat: Montserrat_400Regular,
+    MontserratBold: Montserrat_700Bold,
   });
 
   if (!fontsLoaded) {
