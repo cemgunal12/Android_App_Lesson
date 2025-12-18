@@ -1,3 +1,4 @@
+// screens/ProfilesListScreen.js
 import { useEffect, useState } from 'react';
 import {
   View,
@@ -6,6 +7,7 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { api } from '../api/client';
 
@@ -15,28 +17,54 @@ export default function ProfilesListScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [hasMore, setHasMore] = useState(true);
+  
+  // Yenileme durumu için state
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchProfiles = async () => {
-    if (loading || !hasMore) return;
+  const fetchProfiles = async (isRefresh = false) => {
+    // Eğer zaten yükleniyorsa ve bu bir yenileme işlemi değilse dur
+    if ((loading || !hasMore) && !isRefresh) return;
 
     setLoading(true);
     setError(null);
 
+    // Yenileme ise sayfayı 1 yap, yoksa mevcut sayfayı kullan
+    const targetPage = isRefresh ? 1 : page;
+
     try {
-      const res = await api.get(`/profiles?page=${page}&limit=10`);
+      const res = await api.get(`/profiles?page=${targetPage}&limit=10`);
 
       if (res.data.length === 0) {
+        if (isRefresh) setProfiles([]); // Yenilendiyse ve boşsa listeyi temizle
         setHasMore(false);
       } else {
-        setProfiles((prev) => [...prev, ...res.data]);
-        setPage((prev) => prev + 1);
+        if (isRefresh) {
+          // Yenileme ise eski verileri sil, yenileri koy
+          setProfiles(res.data);
+          setPage(2); // Sonraki sayfa 2 olacak
+        } else {
+          // Değilse üzerine ekle
+          setProfiles((prev) => [...prev, ...res.data]);
+          setPage((prev) => prev + 1);
+        }
+        // Eğer gelen veri limiti dolduruyorsa muhtemelen devamı vardır
+        if (res.data.length < 10) setHasMore(false);
+        else setHasMore(true);
       }
     } catch (err) {
-      setError('Failed to load profiles. Check your connection.');
-      console.error(err);
+      // Hata mesajını client.js'den gelen mesaj olarak alıyoruz
+      setError(err.message || 'Failed to load profiles.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  // Pull-to-refresh tetiklendiğinde çalışacak fonksiyon
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setHasMore(true); 
+    await fetchProfiles(true); 
   };
 
   useEffect(() => {
@@ -54,7 +82,7 @@ export default function ProfilesListScreen({ navigation }) {
   );
 
   const renderFooter = () => {
-    if (!loading) return null;
+    if (!loading || refreshing) return null; 
     return (
       <View style={styles.footer}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -62,11 +90,31 @@ export default function ProfilesListScreen({ navigation }) {
     );
   };
 
+  const renderEmpty = () => {
+    if (loading) return null;
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.emptyText}>No profiles found</Text>
+      </View>
+    );
+  };
+
+  // İlk yükleme ekranı
+  if (loading && profiles.length === 0 && !refreshing) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading profiles...</Text>
+      </View>
+    );
+  }
+
+  // Hata ekranı
   if (error && profiles.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>{error}</Text>
-        <Pressable style={styles.retryButton} onPress={fetchProfiles}>
+        <Pressable style={styles.retryButton} onPress={() => fetchProfiles(true)}>
           <Text style={styles.retryText}>Retry</Text>
         </Pressable>
       </View>
@@ -79,10 +127,14 @@ export default function ProfilesListScreen({ navigation }) {
         data={profiles}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
-        onEndReached={fetchProfiles}
+        onEndReached={() => fetchProfiles(false)}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
-        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={profiles.length === 0 ? { flex: 1 } : styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </View>
   );
@@ -143,5 +195,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    fontWeight: '500',
   },
 });
