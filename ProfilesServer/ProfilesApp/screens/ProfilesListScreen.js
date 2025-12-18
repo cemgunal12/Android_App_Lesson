@@ -1,4 +1,3 @@
-// screens/ProfilesListScreen.js
 import { useEffect, useState } from 'react';
 import {
   View,
@@ -18,22 +17,18 @@ export default function ProfilesListScreen({ navigation }) {
   const [hasMore, setHasMore] = useState(true);
 
   const fetchProfiles = async () => {
-    // Zaten yükleniyorsa veya daha fazla veri yoksa işlem yapma
     if (loading || !hasMore) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      // API'den veriyi çek (Sayfa numarasına göre)
       const res = await api.get(`/profiles?page=${page}&limit=10`);
 
       if (res.data.length === 0) {
-        setHasMore(false); // Veri bitti
+        setHasMore(false);
       } else {
-        // Yeni verileri eskilerin üzerine ekle (Append)
         setProfiles((prev) => [...prev, ...res.data]);
-        // Bir sonraki sayfa için sayacı artır
         setPage((prev) => prev + 1);
       }
     } catch (err) {
@@ -44,12 +39,10 @@ export default function ProfilesListScreen({ navigation }) {
     }
   };
 
-  // Ekran ilk açıldığında çalışır
   useEffect(() => {
     fetchProfiles();
   }, []);
 
-  // Her bir profil kartının görüntüsü
   const renderItem = ({ item }) => (
     <Pressable
       style={styles.card}
@@ -60,7 +53,6 @@ export default function ProfilesListScreen({ navigation }) {
     </Pressable>
   );
 
-  // Listenin altındaki yükleniyor simgesi
   const renderFooter = () => {
     if (!loading) return null;
     return (
@@ -70,7 +62,6 @@ export default function ProfilesListScreen({ navigation }) {
     );
   };
 
-  // Hata durumunda gösterilecek ekran
   if (error && profiles.length === 0) {
     return (
       <View style={styles.centerContainer}>
@@ -88,8 +79,8 @@ export default function ProfilesListScreen({ navigation }) {
         data={profiles}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
-        onEndReached={fetchProfiles} // Sona yaklaşınca tetikle
-        onEndReachedThreshold={0.5}  // Listenin yarısına gelince yüklemeye başla
+        onEndReached={fetchProfiles}
+        onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         contentContainerStyle={styles.listContent}
       />
